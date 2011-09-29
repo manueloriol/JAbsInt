@@ -57,22 +57,19 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return true if they need, false otherwise.
 	 */
 	public boolean allBranchesNeedToBeEvaluated() {
-		return evaluateAll;
+		return evaluateThen&&evaluateElse;
 	}
 
-	/**
-	 * Sets the value for evaluateAll
-	 * 
-	 * @param evaluateAll true to evaluate all branches, false otherwise
-	 */
-	public void setEvaluateAll(boolean evaluateAll) {
-		this.evaluateAll = evaluateAll;
-	}
 
 	/**
 	 * simple boolean to know if the then branch needs to be evaluated. 
 	 */
 	private boolean evaluateThen = true;
+
+	/**
+	 * simple boolean to know if the else branch needs to be evaluated. 
+	 */
+	private boolean evaluateElse = true;
 
 	/**
 	 * In case both branches of the next "if" do not need to be evaluated, checks whether 
@@ -93,6 +90,15 @@ public class JAIMinimalWorld extends JAIWorld {
 	public void setEvaluateThen(boolean evaluateThen) {
 		this.evaluateThen = evaluateThen;
 	}
+	
+	/**
+	 * Sets the value for evaluateThen
+	 * 
+	 * @param evaluateThen true to evaluate the then branch, false to evaluate else
+	 */
+	public void setEvaluateElse(boolean evaluateThen) {
+		this.evaluateElse = evaluateThen;
+	}
 
 	/**
 	 * Gets a local variable
@@ -103,7 +109,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	public JAIAbstractValue getLocalVariable(int number) {
 		JAIAbstractValue v = localVariables.get(number);
 		if (v==null) {
-			v=factory.getLocalAbstractValue(number);
+			v=factory.getLocalVariableAbstractValue(number);
 			localVariables.put(number, v);
 		}
 		return v;
@@ -1897,14 +1903,13 @@ public class JAIMinimalWorld extends JAIWorld {
 	public JAIWorld evaluateIfeq() {
 		JAIAbstractValue v1 = stack.pop();
 		JAIAbstractValue v2 = factory.generateIntegerAbstractValue(0);
+		setEvaluateElse(false);
+		setEvaluateThen(false);
 		if (!v1.intersection(v2).isBottom()) {
 			setEvaluateThen(true);
-			if (!v1.union(v2).equals(v1)) {
-				setEvaluateAll(true);
-			}
-		} else {
-			setEvaluateThen(false);
-			setEvaluateAll(false);
+		} 
+		if (!v1.minus(v2).isBottom()) {
+			setEvaluateElse(true);			
 		}
 		JAIDebug.print("Evaluated a ifeq ", this);
 		return this;
@@ -1917,17 +1922,13 @@ public class JAIMinimalWorld extends JAIWorld {
 	public JAIWorld evaluateIfne() {
 		JAIAbstractValue v1 = stack.pop();
 		JAIAbstractValue v2 = factory.generateIntegerAbstractValue(0);
-		if (v1.intersection(v2).isBottom()) {
-			setEvaluateThen(true);
-			setEvaluateAll(false);
-		} else {
-			if (v1.equals(v2)) {
-				setEvaluateThen(true);
-				setEvaluateAll(false);
-			} else {
-				setEvaluateAll(true);
-				setEvaluateThen(false);
-			}
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (!v1.intersection(v2).isBottom()) {
+			setEvaluateElse(true);
+		} 
+		if (!v1.minus(v2).isBottom()) {
+			setEvaluateThen(true);			
 		}
 		JAIDebug.print("Evaluated a ifne ", this);
 		return this;
@@ -1939,15 +1940,14 @@ public class JAIMinimalWorld extends JAIWorld {
 	 */	
 	public JAIWorld evaluateIflt() {
 		JAIAbstractValue v1 = stack.pop();
-		JAIAbstractValue v2 = factory.generateIntegerAbstractValue(0);
-		if (v1.isUnordered(v2)) {
-			setEvaluateAll(true);
-		} else {
-			setEvaluateAll(false);
-			setEvaluateThen(false);
-			if (v1.isValueLowerThan(v2)) {
-				setEvaluateThen(true);
-			}
+		JAIAbstractValue v2 = factory.generateIntegerAbstractValueLowerThan(0);
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (!v1.intersection(v2).isBottom()) {
+			setEvaluateThen(true);
+		} 
+		if (!v1.minus(v2).isBottom()) {
+			setEvaluateElse(true);			
 		}
 		JAIDebug.print("Evaluated a iflt ", this);
 		return this;
@@ -1959,17 +1959,16 @@ public class JAIMinimalWorld extends JAIWorld {
 	 */	
 	public JAIWorld evaluateIfge() {
 		JAIAbstractValue v1 = stack.pop();
-		JAIAbstractValue v2 = factory.generateIntegerAbstractValue(0);
-		if (v1.isUnordered(v2)) {
-			setEvaluateAll(true);
-		} else {
-			setEvaluateAll(false);
-			setEvaluateThen(false);
-			if (v1.isValueGreaterOrEqualTo(v2)) {
-				setEvaluateThen(true);
-			}
+		JAIAbstractValue v2 = factory.generateIntegerAbstractValueLowerThan(0);
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (!v1.intersection(v2).isBottom()) {
+			setEvaluateElse(true);
+		} 
+		if (!v1.minus(v2).isBottom()) {
+			setEvaluateThen(true);			
 		}
-		JAIDebug.print("Evaluate a ifge ", this);
+		JAIDebug.print("Evaluated a ifge ", this);
 		return this;
 	}
 
@@ -1978,7 +1977,17 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIfgt() {
-		JAIDebug.print("Evaluate a ifgt ", this);
+		JAIAbstractValue v1 = stack.pop();
+		JAIAbstractValue v2 = factory.generateIntegerAbstractValueLowerThan(1);
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (!v1.intersection(v2).isBottom()) {
+			setEvaluateElse(true);
+		} 
+		if (!v1.minus(v2).isBottom()) {
+			setEvaluateThen(true);			
+		}
+		JAIDebug.print("Evaluated a ifgt ", this);
 		return this;
 	}
 
@@ -1987,7 +1996,17 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIfle() {
-		JAIDebug.print("Evaluate a ifle ", this);
+		JAIAbstractValue v1 = stack.pop();
+		JAIAbstractValue v2 = factory.generateIntegerAbstractValueLowerThan(1);
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (!v1.intersection(v2).isBottom()) {
+			setEvaluateThen(true);
+		} 
+		if (!v1.minus(v2).isBottom()) {
+			setEvaluateElse(true);			
+		}
+		JAIDebug.print("Evaluated a ifle ", this);
 		return this;
 	}
 
@@ -1996,7 +2015,17 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIf_icmpeq() {
-		JAIDebug.print("Evaluate a if_icmpeq ", this);
+		JAIAbstractValue v1 = stack.pop();
+		JAIAbstractValue v2 = stack.pop();
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (!v1.intersection(v2).isBottom()) {
+			setEvaluateThen(true);
+		} 
+		if (!v1.minus(v2).isBottom()) {
+			setEvaluateElse(true);			
+		}
+		JAIDebug.print("Evaluated a if_icmpeq ", this);
 		return this;
 	}
 
@@ -2005,7 +2034,17 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIf_icmpne() {
-		JAIDebug.print("Evaluate a if_icmpne ", this);
+		JAIAbstractValue v1 = stack.pop();
+		JAIAbstractValue v2 = stack.pop();
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (!v1.intersection(v2).isBottom()) {
+			setEvaluateElse(true);
+		} 
+		if (!v1.minus(v2).isBottom()) {
+			setEvaluateThen(true);			
+		}
+		JAIDebug.print("Evaluated a if_icmpne ", this);
 		return this;
 	}
 
@@ -2014,7 +2053,17 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIf_icmplt() {
-		JAIDebug.print("Evaluate a if_icmplt ", this);
+		JAIAbstractValue v1 = stack.pop();
+		JAIAbstractValue v2 = stack.pop();
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (v1.getLowestPossibleIntegerValue()<v2.getHighestPossibleIntegerValue()) {
+			setEvaluateThen(true);
+		} 
+		if (v1.getHighestPossibleIntegerValue()>=v2.getLowestPossibleIntegerValue()) {
+			setEvaluateElse(true);			
+		}
+		JAIDebug.print("Evaluated a if_icmplt ", this);
 		return this;
 	}
 
@@ -2023,7 +2072,17 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIf_icmpge() {
-		JAIDebug.print("Evaluate a if_icmpge ", this);
+		JAIAbstractValue v1 = stack.pop();
+		JAIAbstractValue v2 = stack.pop();
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (v1.getHighestPossibleIntegerValue()<=v2.getLowestPossibleIntegerValue()) {
+			setEvaluateThen(true);
+		} 
+		if (v1.getLowestPossibleIntegerValue()>v2.getHighestPossibleIntegerValue()) {
+			setEvaluateElse(true);			
+		}
+		JAIDebug.print("Evaluated a if_icmpge ", this);
 		return this;
 	}
 
@@ -2032,7 +2091,17 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIf_icmpgt() {
-		JAIDebug.print("Evaluate a if_icmpgt ", this);
+		JAIAbstractValue v1 = stack.pop();
+		JAIAbstractValue v2 = stack.pop();
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (v1.getHighestPossibleIntegerValue()<v2.getLowestPossibleIntegerValue()) {
+			setEvaluateThen(true);
+		} 
+		if (v1.getLowestPossibleIntegerValue()>=v2.getHighestPossibleIntegerValue()) {
+			setEvaluateElse(true);			
+		}
+		JAIDebug.print("Evaluated a if_icmpgt ", this);
 		return this;
 	}
 
@@ -2041,7 +2110,17 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIf_icmple() {
-		JAIDebug.print("Evaluate a if_icmple ", this);
+		JAIAbstractValue v1 = stack.pop();
+		JAIAbstractValue v2 = stack.pop();
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (v1.getLowestPossibleIntegerValue()<=v2.getHighestPossibleIntegerValue()) {
+			setEvaluateThen(true);
+		} 
+		if (v1.getHighestPossibleIntegerValue()>v2.getLowestPossibleIntegerValue()) {
+			setEvaluateElse(true);			
+		}
+		JAIDebug.print("Evaluated a if_icmple ", this);
 		return this;
 	}
 
@@ -2050,7 +2129,17 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIf_acmpeq() {
-		JAIDebug.print("Evaluate a if_acmpeq ", this);
+		JAIAbstractValue v1 = stack.pop();
+		JAIAbstractValue v2 = stack.pop();
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (!v1.intersection(v2).isBottom()) {
+			setEvaluateThen(true);
+		} 
+		if (!v1.minus(v2).isBottom()) {
+			setEvaluateElse(true);			
+		}
+		JAIDebug.print("Evaluated a if_acmpeq ", this);
 		return this;
 	}
 
@@ -2059,6 +2148,16 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIf_acmpne() {
+		JAIAbstractValue v1 = stack.pop();
+		JAIAbstractValue v2 = stack.pop();
+		setEvaluateElse(false);
+		setEvaluateThen(false);
+		if (!v1.intersection(v2).isBottom()) {
+			setEvaluateElse(true);
+		} 
+		if (!v1.minus(v2).isBottom()) {
+			setEvaluateThen(true);			
+		}
 		JAIDebug.print("Evaluate a if_acmpne ", this);
 		return this;
 	}
@@ -2068,7 +2167,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateGoto() {
-		JAIDebug.print("Evaluate a goto ", this);
+		JAIDebug.print("Evaluated a goto ", this);
 		return this;
 	}
 
@@ -2077,7 +2176,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateJsr() {
-		JAIDebug.print("Evaluate a jsr ", this);
+		JAIDebug.print("Evaluated a jsr ", this);
 		return this;
 	}
 
@@ -2086,7 +2185,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateRet() {
-		JAIDebug.print("Evaluate a ret ", this);
+		JAIDebug.print("Evaluated a ret ", this);
 		return this;
 	}
 
@@ -2095,7 +2194,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateTableswitch() {
-		JAIDebug.print("Evaluate a tableswitch ", this);
+		JAIDebug.print("Evaluated a tableswitch ", this);
 		return this;
 	}
 
@@ -2104,7 +2203,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateLookupswitch() {
-		JAIDebug.print("Evaluate a lookupswitch ", this);
+		JAIDebug.print("Evaluated a lookupswitch ", this);
 		return this;
 	}
 
@@ -2113,7 +2212,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIreturn() {
-		JAIDebug.print("Evaluate a ireturn ", this);
+		JAIDebug.print("Evaluated a ireturn ", this);
 		return this;
 	}
 
@@ -2122,7 +2221,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateLreturn() {
-		JAIDebug.print("Evaluate a lreturn ", this);
+		JAIDebug.print("Evaluated a lreturn ", this);
 		return this;
 	}
 
@@ -2131,7 +2230,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateFreturn() {
-		JAIDebug.print("Evaluate a freturn ", this);
+		JAIDebug.print("Evaluated a freturn ", this);
 		return this;
 	}
 
@@ -2140,7 +2239,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateDreturn() {
-		JAIDebug.print("Evaluate a dreturn ", this);
+		JAIDebug.print("Evaluated a dreturn ", this);
 		return this;
 	}
 
@@ -2149,7 +2248,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateAreturn() {
-		JAIDebug.print("Evaluate a areturn ", this);
+		JAIDebug.print("Evaluated a areturn ", this);
 		return this;
 	}
 
@@ -2158,27 +2257,29 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateReturn() {
-		JAIDebug.print("Evaluate a return ", this);
+		JAIDebug.print("Evaluated a return ", this);
 		return this;
 	}
 
 	/**
 	 * Evaluates a getstatic
-	 * @param staticVariableIndex the index of the concerned static member.
+	 * @param staticFieldName the name of the concerned static member.
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateGetstatic(String staticFieldName) {
-		JAIDebug.print("Evaluate a getstatic on "+staticFieldName, this);
+		stack.push(factory.getStaticVariableAbstractValue(staticFieldName));
+		JAIDebug.print("Evaluated a getstatic on "+staticFieldName, this);
 		return this;
 	}
 
 	/**
 	 * Evaluates a putstatic
-	 * @param string the name of the concerned static member.
+	 * @param staticFieldName the name of the concerned static member.
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluatePutstatic(String staticFieldName) {
-		JAIDebug.print("Evaluate a putstatic on "+staticFieldName, this);
+		factory.setStaticVariableAbstractValue(staticFieldName, stack.pop());
+		JAIDebug.print("Evaluated a putstatic on "+staticFieldName, this);
 		return this;
 	}
 
@@ -2188,6 +2289,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateGetfield(String fieldName) {
+		// TODO
 		JAIDebug.print("Evaluate a getfield "+fieldName, this);
 		return this;
 	}
@@ -2198,6 +2300,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluatePutfield(String fieldName) {
+		// TODO
 		JAIDebug.print("Evaluate a putfield "+fieldName, this);
 		return this;
 	}
@@ -2208,6 +2311,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateInvokevirtual(String methodDescriptor) {
+		// TODO
 		JAIDebug.print("Evaluate a invokevirtual ", this);
 		return this;
 	}
@@ -2218,6 +2322,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateInvokespecial(String methodDescriptor) {
+		// TODO
 		JAIDebug.print("Evaluate a invokespecial ", this);
 		return this;
 	}
@@ -2228,6 +2333,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateInvokestatic(String methodDescriptor) {
+		// TODO
 		JAIDebug.print("Evaluate a invokestatic ", this);
 		return this;
 	}
@@ -2239,6 +2345,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateInvokeinterface(String methodDescriptor, int argCount) {
+		// TODO
 		JAIDebug.print("Evaluate a invokeinterface ", this);
 		return this;
 	}
@@ -2249,6 +2356,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateNew(String classInfo) {
+		// TODO
 		JAIDebug.print("Evaluate a new "+classInfo, this);
 		return this;
 	}
@@ -2259,6 +2367,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateNewarray(String typeInfo) {
+		// TODO
 		JAIDebug.print("Evaluate a newarray "+typeInfo, this);
 		return this;
 	}
@@ -2269,6 +2378,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateAnewarray(String classInfo) {
+		// TODO
 		JAIDebug.print("Evaluate a anewarray "+classInfo, this,true);
 		return this;
 	}
@@ -2278,6 +2388,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateArraylength() {
+		// TODO
 		JAIDebug.print("Evaluate a arraylength ", this);
 		return this;
 	}
@@ -2287,6 +2398,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateAthrow() {
+		// TODO
 		JAIDebug.print("Evaluate a athrow ", this);
 		return this;
 	}
@@ -2297,6 +2409,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateCheckcast(String typeCast) {
+		// TODO
 		JAIDebug.print("Evaluate a checkcast "+typeCast, this);
 		return this;
 	}
@@ -2307,6 +2420,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateInstanceof(String type) {
+		// TODO
 		JAIDebug.print("Evaluate a instanceof "+type, this);
 		return this;
 	}
@@ -2316,6 +2430,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateMonitorenter() {
+		// TODO
 		JAIDebug.print("Evaluate a monitorenter ", this);
 		return this;
 	}
@@ -2325,6 +2440,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateMonitorexit() {
+		// TODO
 		JAIDebug.print("Evaluate a monitorexit ", this);
 		return this;
 	}
@@ -2334,7 +2450,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateWide() {
-		JAIDebug.print("Evaluate a wide ", this);
+		JAIDebug.print("Evaluated a wide ", this);
 		return this;
 	}
 
@@ -2345,6 +2461,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateMultianewarray(String type, int dimensions) {
+		// TODO
 		JAIDebug.print("Evaluate a multianewarray of "+type+", of "+dimensions+" dimensions", this, true);
 		return this;
 	}
@@ -2354,6 +2471,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIfnull() {
+		// TODO
 		JAIDebug.print("Evaluate a ifnull ", this);
 		return this;
 	}
@@ -2363,6 +2481,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateIfnonnull() {
+		// TODO
 		JAIDebug.print("Evaluate a ifnonnull ", this);
 		return this;
 	}
@@ -2372,7 +2491,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateGoto_w() {
-		JAIDebug.print("Evaluate a goto_w ", this);
+		JAIDebug.print("Evaluated a goto_w ", this);
 		return this;
 	}
 
@@ -2381,7 +2500,7 @@ public class JAIMinimalWorld extends JAIWorld {
 	 * @return the new state of the abstract world.
 	 */	
 	public JAIWorld evaluateJsr_w() {
-		JAIDebug.print("Evaluate a jsr_w ", this);
+		JAIDebug.print("Evaluated a jsr_w ", this);
 		return this;
 	}
 

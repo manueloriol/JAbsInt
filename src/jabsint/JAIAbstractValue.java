@@ -81,6 +81,14 @@ public abstract class JAIAbstractValue<T> implements Cloneable {
 	 */
 	public abstract JAIAbstractValue union(JAIAbstractValue value) throws JAIAbstractValueException;
 
+	/**
+	 * Returns the subtraction (in the sense of the set theory) of one value by another.
+	 * 
+	 * @param value the value to subtract
+	 * @return the subtraction
+	 */
+	public abstract JAIAbstractValue minus(JAIAbstractValue value) throws JAIAbstractValueException;
+
 	
 	/**
 	 * Returns true if all concrete values represented by this abstract value are lower than the argument value
@@ -633,6 +641,21 @@ public abstract class JAIAbstractValue<T> implements Cloneable {
 	 * @return the compared value value
 	 */
 	public abstract JAIAbstractValue doubleCompareG(JAIAbstractValue v2) throws JAIAbstractValueException;
+
+	
+	/**
+	 * Returns the highest concrete integer value that this abstract (integer) value represents.
+	 *
+	 * @return the highest value
+	 */
+	public abstract int getHighestPossibleIntegerValue() throws JAIAbstractValueException;
+
+	/**
+	 * Returns the lowest concrete integer value that this abstract (integer) value represents.
+	 *
+	 * @return the lowest concrete value
+	 */
+	public abstract int getLowestPossibleIntegerValue() throws JAIAbstractValueException;
 	
 	
 	

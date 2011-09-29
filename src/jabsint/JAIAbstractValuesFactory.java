@@ -38,6 +38,14 @@ public abstract class JAIAbstractValuesFactory implements Cloneable{
 	public abstract JAIAbstractValue generateIntegerAbstractValue(int i);
 
 	/**
+	 * Creates an abstract value representing values lower than i.
+	 * 
+	 * @param i the boundary.
+	 * @return the corresponding abstract value.	
+	 */
+	public abstract JAIAbstractValue generateIntegerAbstractValueLowerThan(int i);
+	
+	/**
 	 * Creates an abstract value representing the long l.
 	 * 
 	 * @param l the long to represent
@@ -79,21 +87,36 @@ public abstract class JAIAbstractValuesFactory implements Cloneable{
 	public abstract JAIAbstractValue generateStringAbstractValue(String s);
 	
 	/**
-	 * Returns the local abstract value representing the String value s.
+	 * Returns the local abstract value representing the local variable i.
 	 * 
-	 * @param number the number of the abstract value
+	 * @param number the number of the local variable
 	 * @return the corresponding abstract value
 	 */
-	public abstract JAIAbstractValue getLocalAbstractValue(int number);
+	public abstract JAIAbstractValue getLocalVariableAbstractValue(int number);
 	
 	/**
-	 * Stores the local abstract value representing the String value s.
+	 * Stores the local abstract value representing the local variable i.
 	 * 
 	 * @param number the number of the abstract value
 	 * @param value the value of the abstract value
 	 */
-	public abstract void setLocalAbstractValue(int number, JAIAbstractValue value);
+	public abstract void setLocalVariableAbstractValue(int number, JAIAbstractValue value);
+
+	/**
+	 * Returns the static abstract value representing the static variable staticFieldName.
+	 * 
+	 * @param staticFieldName the name of the static variable
+	 * @return the corresponding abstract value
+	 */
+	public abstract JAIAbstractValue getStaticVariableAbstractValue(String staticFieldName);
 	 
+	/**
+	 * Stores the static abstract value representing the static variable staticFieldName.
+	 * 
+	 * @param staticFieldName the name of the abstract value
+	 * @param value the value of the abstract value
+	 */
+	public abstract void setStaticVariableAbstractValue(String staticFieldName, JAIAbstractValue value);
 	
 
 }
